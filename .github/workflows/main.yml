@@ -1,0 +1,30 @@
+name: Upload IPA
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Release tag containing the ipa'
+        required: true
+jobs:
+  upload:
+    runs-on: macos-15
+    timeout-minutes: 30
+    steps:
+      - name: Download ipa
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release download "${{ inputs.tag }}" --pattern '*.ipa' -D ./ipa
+          ls -lh ./ipa
+
+      - name: Validate then upload
+        env:
+          K: ${{ secrets.ASC_KEY_ID }}
+          I: ${{ secrets.ASC_ISSUER_ID }}
+        run: |
+          mkdir -p ~/.appstoreconnect/private_keys
+          echo -n "${{ secrets.ASC_P8 }}" | base64 --decode \
+            -o ~/.appstoreconnect/private_keys/AuthKey_$K.p8
+          IPA=$(ls ./ipa/*.ipa | head -1)
+          xcrun altool --validate-app -f "$IPA" -t ios --apiKey "$K" --apiIssuer "$I"
+          xcrun altool --upload-app  -f "$IPA" -t ios --apiKey "$K" --apiIssuer "$I"
