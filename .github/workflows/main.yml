@@ -5,6 +5,7 @@ on:
       tag:
         description: 'Release tag containing the ipa'
         required: true
+
 jobs:
   upload:
     runs-on: macos-15
@@ -14,7 +15,10 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          gh release download "${{ inputs.tag }}" --pattern '*.ipa' -D ./ipa
+          gh release download "${{ inputs.tag }}" \
+            --repo "${{ github.repository }}" \
+            --pattern '*.ipa' \
+            --dir ./ipa
           ls -lh ./ipa
 
       - name: Validate then upload
